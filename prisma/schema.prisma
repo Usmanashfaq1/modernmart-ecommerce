@@ -1,13 +1,11 @@
-// prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
 }
 
 datasource db {
-  provider   = "postgresql"
-  url        = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 enum Role {
@@ -24,7 +22,7 @@ enum OrderStatus {
 }
 
 model User {
-  id        String   @id        // comes from Supabase auth.users.id (UUID)
+  id        String   @id @db.Uuid      // SUPABASE USER ID
   email     String   @unique
   name      String?
   role      Role     @default(USER)
@@ -34,7 +32,6 @@ model User {
   reviews   Review[]
   cart      Cart?
 }
-
 
 model Category {
   id          Int       @id @default(autoincrement())
@@ -65,7 +62,7 @@ model Product {
 
 model Order {
   id              Int         @id @default(autoincrement())
-  userId          String
+  userId          String      @db.Uuid
   status          OrderStatus @default(PENDING)
   total           Float
   shippingAddress String
@@ -89,7 +86,7 @@ model OrderItem {
 model Review {
   id        Int      @id @default(autoincrement())
   productId Int
-  userId    String
+  userId    String   @db.Uuid
   rating    Int      // 1-5 stars
   comment   String?
   createdAt DateTime @default(now())
@@ -100,7 +97,7 @@ model Review {
 
 model Cart {
   id        Int       @id @default(autoincrement())
-  userId    String    @unique
+  userId    String    @unique @db.Uuid
   createdAt DateTime  @default(now())
 
   user      User      @relation(fields: [userId], references: [id])

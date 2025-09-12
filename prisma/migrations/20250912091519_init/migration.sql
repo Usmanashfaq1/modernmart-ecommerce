@@ -6,10 +6,9 @@ CREATE TYPE "public"."OrderStatus" AS ENUM ('PENDING', 'PAID', 'SHIPPED', 'DELIV
 
 -- CreateTable
 CREATE TABLE "public"."User" (
-    "id" SERIAL NOT NULL,
+    "id" UUID NOT NULL,
     "email" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "password" TEXT NOT NULL,
+    "name" TEXT,
     "role" "public"."Role" NOT NULL DEFAULT 'USER',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -44,7 +43,7 @@ CREATE TABLE "public"."Product" (
 -- CreateTable
 CREATE TABLE "public"."Order" (
     "id" SERIAL NOT NULL,
-    "userId" INTEGER NOT NULL,
+    "userId" UUID NOT NULL,
     "status" "public"."OrderStatus" NOT NULL DEFAULT 'PENDING',
     "total" DOUBLE PRECISION NOT NULL,
     "shippingAddress" TEXT NOT NULL,
@@ -68,7 +67,7 @@ CREATE TABLE "public"."OrderItem" (
 CREATE TABLE "public"."Review" (
     "id" SERIAL NOT NULL,
     "productId" INTEGER NOT NULL,
-    "userId" INTEGER NOT NULL,
+    "userId" UUID NOT NULL,
     "rating" INTEGER NOT NULL,
     "comment" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -79,7 +78,7 @@ CREATE TABLE "public"."Review" (
 -- CreateTable
 CREATE TABLE "public"."Cart" (
     "id" SERIAL NOT NULL,
-    "userId" INTEGER NOT NULL,
+    "userId" UUID NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Cart_pkey" PRIMARY KEY ("id")
