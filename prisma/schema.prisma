@@ -29,18 +29,7 @@ model User {
   createdAt DateTime @default(now())
 
   orders    Order[]
-  reviews   Review[]
   cart      Cart?
-}
-
-model Category {
-  id          Int       @id @default(autoincrement())
-  name        String
-  slug        String    @unique
-  description String?
-  image       String?
-
-  products    Product[]
 }
 
 model Product {
@@ -51,11 +40,8 @@ model Product {
   price       Float
   stock       Int
   images      String[]   // Array of image URLs
+  createdAt   DateTime   @default(now())
 
-  category    Category   @relation(fields: [categoryId], references: [id])
-  categoryId  Int
-
-  reviews     Review[]
   orderItems  OrderItem[]
   cartItems   CartItem[]
 }
@@ -77,22 +63,10 @@ model OrderItem {
   orderId   Int
   productId Int
   quantity  Int
-  price     Float
+  price     Float   // Price at time of order
 
   order   Order   @relation(fields: [orderId], references: [id])
   product Product @relation(fields: [productId], references: [id])
-}
-
-model Review {
-  id        Int      @id @default(autoincrement())
-  productId Int
-  userId    String   @db.Uuid
-  rating    Int      // 1-5 stars
-  comment   String?
-  createdAt DateTime @default(now())
-
-  product Product @relation(fields: [productId], references: [id])
-  user    User    @relation(fields: [userId], references: [id])
 }
 
 model Cart {
