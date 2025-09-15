@@ -9,17 +9,20 @@ export async function register(formData: FormData) {
   const password = formData.get("password") as string;
   const name = formData.get("name") as string;
 
-  try {
-    await signUp(email, password, name);
+  let user;
 
-    // ✅ Cache revalidation (if needed)
+  try {
+    user = await signUp(email, password, name);
+    console.log("✅ User created successfully:", user.id);
+
+    // Revalidate cache
     revalidatePath("/", "layout");
 
-    // ✅ Redirect on success
-    
-  } catch (err) {
-    console.error("Signup failed:", err);
-    redirect("/error");
+  } catch (err: any) {
+    console.error("❌ Real signup error:", err);
+    return redirect(`/register?error=${encodeURIComponent(err.message || "Signup failed")}`);
   }
+
+  // ✅ Success redirect (outside the try/catch, so it won’t get caught as an error)
   redirect("/account");
 }

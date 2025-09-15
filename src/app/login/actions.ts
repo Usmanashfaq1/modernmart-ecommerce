@@ -2,40 +2,50 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-
 import { createClient } from '@/lib/supabase/supabaseServer'
 
 export async function login(formData: FormData) {
   const supabase = await createClient()
 
-  // type-casting here for convenience
-  // in practice, you should validate your inputs
-  const data = {
-    email: formData.get('email') as string,
-    password: formData.get('password') as string,
+  const email = formData.get('email') as string
+  const password = formData.get('password') as string
+
+  // ✅ Basic validation
+  if (!email || !password) {
+    return redirect('/login?error=Please fill in all fields')
   }
 
-  const { error } = await supabase.auth.signInWithPassword(data)
+  const { data: authData, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  })
 
   if (error) {
-    console.log(error)
-    redirect('/error')
+    console.error('❌ Login error:', error.message)
+    return redirect(`/login?error=${encodeURIComponent(error.message)}`)
   }
 
-  revalidatePath("/", "layout");
-  redirect("/account");
+  console.log('✅ Login successful:', authData.user?.id)
+
+  // ✅ Refresh cache
+  revalidatePath('/', 'layout')
+
+  // ✅ Redirect on success (outside of error handling)
+  redirect('/account')
 }
-
-
 
 export async function logout() {
   const supabase = await createClient()
   const { error } = await supabase.auth.signOut()
-  
+
   if (error) {
-    redirect('/error')
+    console.error('❌ Logout error:', error.message)
+    return redirect('/error')
   }
-  
+
+  // ✅ Refresh cache
   revalidatePath('/', 'layout')
+
+  // ✅ Redirect on success
   redirect('/login')
 }
