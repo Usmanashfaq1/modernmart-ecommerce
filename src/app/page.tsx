@@ -83,14 +83,20 @@ function Header() {
             </Button>
             
             <Button variant="ghost" size="icon" className="relative">
-              <ShoppingCart className="h-5 w-5" />
+               <Link href="/cart">
+               <ShoppingCart className="h-5 w-5" />
               <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs">
                 0
               </Badge>
+              </Link>
+              
             </Button>
             
             <Button variant="ghost" size="icon">
-              <User className="h-5 w-5" />
+              <Link href="/account">
+                <User className="h-5 w-5" />
+              </Link>
+              
             </Button>
             
             <Button variant="ghost" size="icon" className="md:hidden">

@@ -6,6 +6,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { Input } from "@/components/ui/input"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { 
   Star, 
   ShoppingCart, 
@@ -16,12 +18,14 @@ import {
   Shield, 
   RotateCcw,
   ChevronLeft,
-  Share2
+  Share2,
+  CheckCircle,
+  Loader2
 } from "lucide-react"
 import Link from "next/link"
-import { Input } from "@/components/ui/input"
+import { addToCartAction } from "@/app/actions/cart"
 
-// Mock product data (you'll replace with database query later)
+// Mock product data (same as before)
 const getProductBySlug = (slug: string) => {
   const products = {
     "premium-cotton-tshirt": {
@@ -106,7 +110,6 @@ function ProductGallery({ images, name }: { images: string[], name: string }) {
 
   return (
     <div className="space-y-4">
-      {/* Main Image */}
       <div className="aspect-square overflow-hidden rounded-lg bg-muted">
         <img
           src={images[selectedImage]}
@@ -115,7 +118,6 @@ function ProductGallery({ images, name }: { images: string[], name: string }) {
         />
       </div>
       
-      {/* Thumbnail Images */}
       <div className="flex space-x-2">
         {images.map((image, index) => (
           <button
@@ -141,16 +143,34 @@ function ProductInfo({ product }: { product: any }) {
   const [selectedSize, setSelectedSize] = useState("")
   const [selectedColor, setSelectedColor] = useState("")
   const [quantity, setQuantity] = useState(1)
+  const [isAddingToCart, setIsAddingToCart] = useState(false)
+  const [message, setMessage] = useState({ type: '', text: '' })
 
-  const handleAddToCart = () => {
-    // This will connect to your cart system later
-    console.log("Added to cart:", {
-      product: product.id,
-      size: selectedSize,
-      color: selectedColor,
-      quantity
-    })
-    alert("Added to cart! (This will be replaced with actual cart functionality)")
+  const handleAddToCart = async (formData: FormData) => {
+    // Validation
+    if (product.sizes && !selectedSize) {
+      setMessage({ type: 'error', text: 'Please select a size' })
+      return
+    }
+    if (product.colors && !selectedColor) {
+      setMessage({ type: 'error', text: 'Please select a color' })
+      return
+    }
+
+    setIsAddingToCart(true)
+    setMessage({ type: '', text: '' })
+
+    try {
+      await addToCartAction(formData)
+      setMessage({ type: 'success', text: 'Added to cart successfully!' })
+      
+      // Clear message after 3 seconds
+      setTimeout(() => setMessage({ type: '', text: '' }), 3000)
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.message || 'Failed to add to cart' })
+    } finally {
+      setIsAddingToCart(false)
+    }
   }
 
   return (
@@ -202,9 +222,7 @@ function ProductInfo({ product }: { product: any }) {
             ))}
           </div>
           <span className="text-lg font-medium">{product.rating}</span>
-          <Link href="#reviews" className="text-primary hover:underline">
-            ({product.reviews} reviews)
-          </Link>
+          <span className="text-primary">({product.reviews} reviews)</span>
         </div>
 
         {/* Price */}
@@ -236,8 +254,14 @@ function ProductInfo({ product }: { product: any }) {
 
       <Separator />
 
-      {/* Product Options */}
-      <div className="space-y-6">
+      {/* Add to Cart Form */}
+      <form action={handleAddToCart} className="space-y-6">
+        {/* Hidden fields for form data */}
+        <input type="hidden" name="productId" value={product.id} />
+        <input type="hidden" name="quantity" value={quantity} />
+        <input type="hidden" name="size" value={selectedSize} />
+        <input type="hidden" name="color" value={selectedColor} />
+
         {/* Size Selection */}
         {product.sizes && (
           <div className="space-y-3">
@@ -246,6 +270,7 @@ function ProductInfo({ product }: { product: any }) {
               {product.sizes.map((size: string) => (
                 <Button
                   key={size}
+                  type="button"
                   variant={selectedSize === size ? "default" : "outline"}
                   onClick={() => setSelectedSize(size)}
                   className="w-12 h-12"
@@ -265,6 +290,7 @@ function ProductInfo({ product }: { product: any }) {
               {product.colors.map((color: string) => (
                 <Button
                   key={color}
+                  type="button"
                   variant={selectedColor === color ? "default" : "outline"}
                   onClick={() => setSelectedColor(color)}
                 >
@@ -280,6 +306,7 @@ function ProductInfo({ product }: { product: any }) {
           <h3 className="font-semibold">Quantity</h3>
           <div className="flex items-center space-x-3">
             <Button
+              type="button"
               variant="outline"
               size="icon"
               onClick={() => setQuantity(Math.max(1, quantity - 1))}
@@ -294,6 +321,7 @@ function ProductInfo({ product }: { product: any }) {
               min="1"
             />
             <Button
+              type="button"
               variant="outline"
               size="icon"
               onClick={() => setQuantity(quantity + 1)}
@@ -302,28 +330,41 @@ function ProductInfo({ product }: { product: any }) {
             </Button>
           </div>
         </div>
-      </div>
 
-      <Separator />
+        {/* Success/Error Message */}
+        {message.text && (
+          <Alert variant={message.type === 'error' ? 'destructive' : 'default'}>
+            {message.type === 'success' ? (
+              <CheckCircle className="h-4 w-4" />
+            ) : (
+              <Alert className="h-4 w-4" />
+            )}
+            <AlertDescription>{message.text}</AlertDescription>
+          </Alert>
+        )}
 
-      {/* Add to Cart */}
-      <div className="space-y-4">
+        {/* Add to Cart Button */}
         <Button 
+          type="submit"
           className="w-full" 
           size="lg"
-          onClick={handleAddToCart}
-          disabled={!product.inStock || !selectedSize || !selectedColor}
+          disabled={!product.inStock || isAddingToCart}
         >
-          <ShoppingCart className="mr-2 h-5 w-5" />
-          Add to Cart - ${(product.price * quantity).toFixed(2)}
+          {isAddingToCart ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Adding to Cart...
+            </>
+          ) : (
+            <>
+              <ShoppingCart className="mr-2 h-5 w-5" />
+              Add to Cart - ${(product.price * quantity).toFixed(2)}
+            </>
+          )}
         </Button>
-        
-        <Button variant="outline" className="w-full" size="lg">
-          Buy Now
-        </Button>
-      </div>
+      </form>
 
-      {/* Features */}
+      {/* Product Features & Shipping Info - Same as before */}
       <Card>
         <CardContent className="p-6">
           <h3 className="font-semibold mb-4">Product Features</h3>
@@ -338,7 +379,6 @@ function ProductInfo({ product }: { product: any }) {
         </CardContent>
       </Card>
 
-      {/* Shipping Info */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="flex items-center space-x-3 p-4 border rounded-lg">
           <Truck className="h-5 w-5 text-primary" />
