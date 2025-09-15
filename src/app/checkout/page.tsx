@@ -4,20 +4,20 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-
 import { Separator } from "@/components/ui/separator"
-
 import { 
   CreditCard, 
   Truck, 
   Shield, 
   ChevronLeft, 
   Lock,
-  ShoppingBag
+  ShoppingBag,
+  Loader2
 } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
-// Mock cart data (same as cart page, replace with your cart context later)
+// Mock cart data (replace with your cart context later)
 const initialCartItems = [
   {
     id: 1,
@@ -156,7 +156,7 @@ function OrderSummary({ items }: { items: typeof initialCartItems }) {
           </div>
           <div className="flex items-center space-x-2 text-sm text-muted-foreground">
             <Shield className="h-4 w-4 text-primary" />
-            <span>Secure checkout with SSL encryption</span>
+            <span>Secure checkout with Stripe</span>
           </div>
         </div>
       </CardContent>
@@ -164,8 +164,23 @@ function OrderSummary({ items }: { items: typeof initialCartItems }) {
   )
 }
 
-function CheckoutForm() {
+function CheckoutForm({ items, onPlaceOrder }: { items: typeof initialCartItems, onPlaceOrder: (items: typeof initialCartItems) => Promise<void> }) {
+  const [loading, setLoading] = useState(false)
+  const router = useRouter()
   const [paymentMethod, setPaymentMethod] = useState("credit-card")
+
+  const handlePlaceOrder = async () => {
+    setLoading(true)
+    try {
+      await onPlaceOrder(items)
+      // Redirect will be handled by Stripe
+    } catch (error) {
+      console.error('Error placing order:', error)
+      alert('Failed to process payment. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <Card>
@@ -264,10 +279,7 @@ function CheckoutForm() {
                 className="h-4 w-4 text-primary focus:ring-primary"
               />
               <label htmlFor="paypal" className="flex items-center gap-2 text-sm font-medium">
-                <svg className="h-4 w-4" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M7.076 2.283C7.485 1.123 8.6.316 9.873.316h6.885c1.678 0 3.142.873 3.977 2.177l.243.381c.35.548.54 1.194.54 1.863v1.07c0 .669-.19 1.315-.54 1.863l-.243.381c-.835 1.304-2.299 2.177-3.977 2.177H9.873c-1.273 0-2.388-.807-2.797-1.967l-.79-2.284c-.17-.492-.258-1.015-.258-1.543v-.571c0-.528.088-1.051.258-1.543l.79-2.284zM2 8.48c0-.669.19-1.315.54-1.863l.243-.381C3.618 4.932 5.082 4.059 6.76 4.059h6.885c1.273 0 2.388.807 2.797 1.967l.79 2.284c.17.492.258 1.015.258 1.543v.571c0 .528-.088 1.051-.258 1.543l-.79 2.284c-.409 1.16-1.524 1.967-2.797 1.967H6.76c-1.678 0-3.142-.873-3.977-2.177l-.243-.381C2.19 13.095 2 12.449 2 11.78v-1.07c0-.528.088-1.051.258-1.543l.79-2.284C3.457 5.743 4.572 4.936 5.845 4.936H2V2.283h12.645c-1.273 0-2.388.807-2.797 1.967l-.79 2.284c-.17.492-.258 1.015-.258 1.543v.571c0 .528.088 1.051.258 1.543l.79 2.284c.409 1.16 1.524 1.967 2.797 1.967H2v-2.653z"/>
-                </svg>
-                PayPal
+                PayPal (Coming Soon)
               </label>
             </div>
           </div>
@@ -289,18 +301,43 @@ function CheckoutForm() {
         </div>
       </CardContent>
       <CardContent>
-        <Button className="w-full" size="lg">
-          <Lock className="mr-2 h-4 w-4" />
-          Place Order
+        <Button onClick={handlePlaceOrder} className="w-full" size="lg" disabled={loading}>
+          {loading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Processing Payment...
+            </>
+          ) : (
+            <>
+              <Lock className="mr-2 h-4 w-4" />
+              Pay Securely with Stripe
+            </>
+          )}
         </Button>
       </CardContent>
     </Card>
   )
 }
 
-
 export default function CheckoutPage() {
   const [cartItems] = useState(initialCartItems)
+  const router = useRouter()
+
+  const handlePlaceOrder = async (items: typeof initialCartItems) => {
+    const response = await fetch('/api/stripe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items }),
+    })
+
+    const { url } = await response.json()
+
+    if (url) {
+      window.location.href = url // Redirect to Stripe Checkout
+    } else {
+      throw new Error('Failed to create payment session')
+    }
+  }
 
   return (
     <div className="min-h-screen">
@@ -320,7 +357,7 @@ export default function CheckoutPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Checkout Form */}
           <div className="lg:col-span-2">
-            <CheckoutForm />
+            <CheckoutForm items={cartItems} onPlaceOrder={handlePlaceOrder} />
           </div>
           
           {/* Order Summary */}
