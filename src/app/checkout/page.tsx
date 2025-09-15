@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from "react"
+import { useForm } from "react-hook-form"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,7 +13,8 @@ import {
   ChevronLeft, 
   Lock,
   ShoppingBag,
-  Loader2
+  Loader2,
+  Package
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -55,6 +57,18 @@ const initialCartItems = [
     inStock: false
   }
 ]
+
+// Form data type
+type CheckoutFormData = {
+  firstName: string
+  lastName: string
+  email: string
+  address: string
+  city: string
+  state: string
+  zip: string
+  country: string
+}
 
 function CheckoutHeader() {
   return (
@@ -164,19 +178,33 @@ function OrderSummary({ items }: { items: typeof initialCartItems }) {
   )
 }
 
-function CheckoutForm({ items, onPlaceOrder }: { items: typeof initialCartItems, onPlaceOrder: (items: typeof initialCartItems) => Promise<void> }) {
+function CheckoutForm({ items, onPlaceOrder }: { items: typeof initialCartItems, onPlaceOrder: (items: typeof initialCartItems, formData: CheckoutFormData | null, paymentMethod: string) => Promise<void> }) {
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
   const [paymentMethod, setPaymentMethod] = useState("credit-card")
+  const { register, handleSubmit, formState: { errors, isValid }, reset } = useForm<CheckoutFormData>({
+    mode: "onChange",
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      address: "",
+      city: "",
+      state: "",
+      zip: "",
+      country: "",
+    },
+  })
 
-  const handlePlaceOrder = async () => {
+  const onSubmit = async (formData: CheckoutFormData) => {
     setLoading(true)
     try {
-      await onPlaceOrder(items)
-      // Redirect will be handled by Stripe
+      // Only send shipping data for COD or if fields are filled
+      const shippingData = paymentMethod === "cod" || Object.values(formData).some(val => val) ? formData : null
+      await onPlaceOrder(items, shippingData, paymentMethod)
+      reset() // Clear form after successful submission
     } catch (error) {
       console.error('Error placing order:', error)
-      alert('Failed to process payment. Please try again.')
+      alert('Failed to process order. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -188,132 +216,182 @@ function CheckoutForm({ items, onPlaceOrder }: { items: typeof initialCartItems,
         <CardTitle>Shipping & Payment</CardTitle>
       </CardHeader>
       <CardContent className="space-y-8">
-        {/* Shipping Information */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Shipping Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label htmlFor="firstName" className="text-sm font-medium">First Name</label>
-              <Input id="firstName" placeholder="John" />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="lastName" className="text-sm font-medium">Last Name</label>
-              <Input id="lastName" placeholder="Doe" />
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <label htmlFor="email" className="text-sm font-medium">Email</label>
-              <Input id="email" type="email" placeholder="john.doe@example.com" />
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <label htmlFor="address" className="text-sm font-medium">Address</label>
-              <Input id="address" placeholder="123 Urban St" />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="city" className="text-sm font-medium">City</label>
-              <Input id="city" placeholder="New York" />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="state" className="text-sm font-medium">State</label>
-              <Input id="state" placeholder="NY" />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="zip" className="text-sm font-medium">ZIP Code</label>
-              <Input id="zip" placeholder="10001" />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="country" className="text-sm font-medium">Country</label>
-              <Input id="country" placeholder="United States" />
-            </div>
-          </div>
-        </div>
-
-        {/* Payment Method */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Payment Method</h3>
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <input
-                type="radio"
-                id="credit-card"
-                name="payment-method"
-                value="credit-card"
-                checked={paymentMethod === "credit-card"}
-                onChange={() => setPaymentMethod("credit-card")}
-                className="h-4 w-4 text-primary focus:ring-primary"
-              />
-              <label htmlFor="credit-card" className="flex items-center gap-2 text-sm font-medium">
-                <CreditCard className="h-4 w-4" />
-                Credit/Debit Card
-              </label>
-            </div>
-            {paymentMethod === "credit-card" && (
-              <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2 md:col-span-2">
-                    <label htmlFor="cardNumber" className="text-sm font-medium">Card Number</label>
-                    <Input id="cardNumber" placeholder="1234 5678 9012 3456" />
-                  </div>
-                  <div className="space-y-2">
-                    <label htmlFor="expiry" className="text-sm font-medium">Expiration Date</label>
-                    <Input id="expiry" placeholder="MM/YY" />
-                  </div>
-                  <div className="space-y-2">
-                    <label htmlFor="cvc" className="text-sm font-medium">CVC</label>
-                    <Input id="cvc" placeholder="123" />
-                  </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <label htmlFor="cardName" className="text-sm font-medium">Name on Card</label>
-                    <Input id="cardName" placeholder="John Doe" />
-                  </div>
-                </div>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+          {/* Shipping Information */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">
+              Shipping Details {paymentMethod === "cod" ? "(Required for Cash on Delivery)" : "(Optional for Stripe)"}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="firstName" className="text-sm font-medium">First Name</label>
+                <Input
+                  id="firstName"
+                  placeholder="John"
+                  {...register("firstName", { required: paymentMethod === "cod" ? "First name is required" : false })}
+                />
+                {errors.firstName && (
+                  <p className="text-sm text-destructive">{errors.firstName.message}</p>
+                )}
               </div>
-            )}
-            <div className="flex items-center space-x-2">
-              <input
-                type="radio"
-                id="paypal"
-                name="payment-method"
-                value="paypal"
-                checked={paymentMethod === "paypal"}
-                onChange={() => setPaymentMethod("paypal")}
-                className="h-4 w-4 text-primary focus:ring-primary"
-              />
-              <label htmlFor="paypal" className="flex items-center gap-2 text-sm font-medium">
-                PayPal (Coming Soon)
-              </label>
+              <div className="space-y-2">
+                <label htmlFor="lastName" className="text-sm font-medium">Last Name</label>
+                <Input
+                  id="lastName"
+                  placeholder="Doe"
+                  {...register("lastName", { required: paymentMethod === "cod" ? "Last name is required" : false })}
+                />
+                {errors.lastName && (
+                  <p className="text-sm text-destructive">{errors.lastName.message}</p>
+                )}
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <label htmlFor="email" className="text-sm font-medium">Email</label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="john.doe@example.com"
+                  {...register("email", {
+                    required: paymentMethod === "cod" ? "Email is required" : false,
+                    pattern: {
+                      value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                      message: "Invalid email address",
+                    },
+                  })}
+                />
+                {errors.email && (
+                  <p className="text-sm text-destructive">{errors.email.message}</p>
+                )}
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <label htmlFor="address" className="text-sm font-medium">Address</label>
+                <Input
+                  id="address"
+                  placeholder="123 Urban St"
+                  {...register("address", { required: paymentMethod === "cod" ? "Address is required" : false })}
+                />
+                {errors.address && (
+                  <p className="text-sm text-destructive">{errors.address.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="city" className="text-sm font-medium">City</label>
+                <Input
+                  id="city"
+                  placeholder="New York"
+                  {...register("city", { required: paymentMethod === "cod" ? "City is required" : false })}
+                />
+                {errors.city && (
+                  <p className="text-sm text-destructive">{errors.city.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="state" className="text-sm font-medium">State</label>
+                <Input
+                  id="state"
+                  placeholder="NY"
+                  {...register("state", { required: paymentMethod === "cod" ? "State is required" : false })}
+                />
+                {errors.state && (
+                  <p className="text-sm text-destructive">{errors.state.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="zip" className="text-sm font-medium">ZIP Code</label>
+                <Input
+                  id="zip"
+                  placeholder="10001"
+                  {...register("zip", {
+                    required: paymentMethod === "cod" ? "ZIP code is required" : false,
+                    pattern: {
+                      value: /^\d{5}(-\d{4})?$/,
+                      message: "Invalid ZIP code",
+                    },
+                  })}
+                />
+                {errors.zip && (
+                  <p className="text-sm text-destructive">{errors.zip.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="country" className="text-sm font-medium">Country</label>
+                <Input
+                  id="country"
+                  placeholder="United States"
+                  {...register("country", { required: paymentMethod === "cod" ? "Country is required" : false })}
+                />
+                {errors.country && (
+                  <p className="text-sm text-destructive">{errors.country.message}</p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Billing Address */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Billing Address</h3>
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="sameAsShipping"
-              className="h-4 w-4 text-primary focus:ring-primary"
-            />
-            <label htmlFor="sameAsShipping" className="text-sm font-medium">
-              Same as shipping address
-            </label>
+          {/* Payment Method */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Payment Method</h3>
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  id="credit-card"
+                  name="payment-method"
+                  value="credit-card"
+                  checked={paymentMethod === "credit-card"}
+                  onChange={() => setPaymentMethod("credit-card")}
+                  className="h-4 w-4 text-primary focus:ring-primary"
+                />
+                <label htmlFor="credit-card" className="flex items-center gap-2 text-sm font-medium">
+                  <CreditCard className="h-4 w-4" />
+                  Credit/Debit Card
+                </label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  id="cod"
+                  name="payment-method"
+                  value="cod"
+                  checked={paymentMethod === "cod"}
+                  onChange={() => setPaymentMethod("cod")}
+                  className="h-4 w-4 text-primary focus:ring-primary"
+                />
+                <label htmlFor="cod" className="flex items-center gap-2 text-sm font-medium">
+                  <Package className="h-4 w-4" />
+                  Cash on Delivery
+                </label>
+              </div>
+            </div>
           </div>
-        </div>
-      </CardContent>
-      <CardContent>
-        <Button onClick={handlePlaceOrder} className="w-full" size="lg" disabled={loading}>
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Processing Payment...
-            </>
-          ) : (
-            <>
-              <Lock className="mr-2 h-4 w-4" />
-              Pay Securely with Stripe
-            </>
-          )}
-        </Button>
+          
+          <Button 
+            type="submit"
+            className="w-full" 
+            size="lg" 
+            disabled={loading || (paymentMethod === "cod" && !isValid)}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Processing Order...
+              </>
+            ) : (
+              <>
+                {paymentMethod === "cod" ? (
+                  <>
+                    <Package className="mr-2 h-4 w-4" />
+                    Place Order (Cash on Delivery)
+                  </>
+                ) : (
+                  <>
+                    <Lock className="mr-2 h-4 w-4" />
+                    Pay Securely with Stripe
+                  </>
+                )}
+              </>
+            )}
+          </Button>
+        </form>
       </CardContent>
     </Card>
   )
@@ -323,19 +401,51 @@ export default function CheckoutPage() {
   const [cartItems] = useState(initialCartItems)
   const router = useRouter()
 
-  const handlePlaceOrder = async (items: typeof initialCartItems) => {
-    const response = await fetch('/api/stripe', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items }),
-    })
+  const handlePlaceOrder = async (items: typeof initialCartItems, formData: CheckoutFormData | null, paymentMethod: string) => {
+    if (paymentMethod === "cod") {
+      if (!formData) {
+        throw new Error('Shipping details required for Cash on Delivery');
+      }
+      // Mock COD order submission (replace with Supabase/Prisma later)
+      const response = await fetch('/api/cod', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items, shipping: formData }),
+      });
 
-    const { url } = await response.json()
-
-    if (url) {
-      window.location.href = url // Redirect to Stripe Checkout
+      if (response.ok) {
+        router.push('/success?cod=true'); // Redirect to success page
+      } else {
+        throw new Error('Failed to process COD order');
+      }
     } else {
-      throw new Error('Failed to create payment session')
+      // Stripe payment
+      const response = await fetch('/api/stripe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          items,
+          shipping: formData ? {
+            name: `${formData.firstName} ${formData.lastName}`,
+            email: formData.email,
+            address: {
+              line1: formData.address,
+              city: formData.city,
+              state: formData.state,
+              postal_code: formData.zip,
+              country: formData.country,
+            },
+          } : null,
+        }),
+      });
+
+      const { url } = await response.json();
+
+      if (url) {
+        window.location.href = url; // Redirect to Stripe Checkout
+      } else {
+        throw new Error('Failed to create payment session');
+      }
     }
   }
 
