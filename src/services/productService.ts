@@ -30,7 +30,7 @@ export async function getProductByIdService(
 
 export async function getAllProductsService(
   page = 1,
-  limit = 10
+  limit = 20
 ): Promise<{ products: Product[]; total: number }> {
   return productRepository.findAll(page, limit);
 }
@@ -80,3 +80,13 @@ export async function incrementStockService(
 ): Promise<Product> {
   return productRepository.incrementStock(id, quantity);
 }
+
+export async function getFeaturedProducts(limit = 6): Promise<Product[]> {
+  // You could add caching, filtering, etc. here
+  return productRepository.findAllProducts(limit)
+}
+
+export async function getProductBySlugService(slug: string) {
+  return productRepository.findBySlug(slug)
+}
+

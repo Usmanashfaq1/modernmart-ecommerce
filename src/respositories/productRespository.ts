@@ -126,3 +126,21 @@ export async function incrementStock(
     data: { stock: { increment: quantity } },
   });
 }
+
+//featured products 
+export async function findAllProducts(limit = 6): Promise<Product[]> {
+  return prisma.product.findMany({
+    orderBy: { createdAt: "desc" },
+    take: limit,
+  })
+}
+
+// // ✅ Find product by slug
+// export async function findBySlug(slug: string): Promise<Product | null> {
+//   return prisma.product.findUnique({
+//     where: { slug },
+//     include: {
+//       images: true,   // if images are in a relation
+//     },
+//   })
+// }
