@@ -1,50 +1,44 @@
-import { logout } from '@/app/admin/login/actions'
-import { createClient } from '@/lib/supabase/supabaseServer'
-import { redirect } from 'next/navigation'
-import {findUserById} from "@/respositories/userRespository"
+// app/admin/layout.tsx
+import Link from "next/link"
+import { createClient } from "@/lib/supabase/supabaseServer"
+import { getUserById } from "@/respositories/userRespository"
+import { redirect } from "next/navigation"
+import { logout } from "@/app/admin/login/actions"
+import { Button } from "@/components/ui/button"
 
-async function AdminHeader() {
-  return (
-    <header className="bg-gray-800 text-white p-4">
-      <div className="flex justify-between items-center">
-        <h1 className="text-xl font-bold">Admin Panel</h1>
-        <form action={logout}>
-          <button 
-            type="submit" 
-            className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded"
-          >
-            Logout
-          </button>
-        </form>
-      </div>
-    </header>
-  )
-}
-
-export default async function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  // Protect the admin routes
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
-  const { data, error } = await supabase.auth.getUser()
-  
-  if (error || !data?.user) {
-    redirect('/login')
-  }
-  // Fetch user profile from DB
-  const profile = await findUserById(data.user.id);
+  const { data: { user }, error } = await supabase.auth.getUser()
 
-  if (!profile || profile.role !== "ADMIN") redirect("/login");
+  if (error || !user) redirect("/login?redirect=/admin")
 
-  // Optional: Check if user is admin
-  // You might want to check user role here
+  const profile = await getUserById(user.id)
+  if (!profile || profile.role !== "ADMIN") redirect("/login?redirect=/admin")
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <AdminHeader />
-      <main className="p-6">
+    <div className="flex min-h-screen bg-muted/10">
+      {/* Sidebar */}
+      <aside className="w-64 bg-white shadow-md p-6 flex flex-col justify-between">
+        <div>
+          <h2 className="text-xl font-bold mb-6">Admin Panel</h2>
+          <p className="mb-4 text-sm text-muted-foreground">Hi, {profile.name}</p>
+          <nav className="flex flex-col gap-2">
+            <Link href="/admin/dashboard" className="hover:text-primary">Dashboard</Link>
+            <Link href="/admin/dashboard/products" className="hover:text-primary">Products</Link>
+            <Link href="/admin/dashboard/products/create" className="hover:text-primary">Add Product</Link>
+          </nav>
+        </div>
+
+        {/* Logout */}
+        <form action={logout} className="mt-6">
+          <Button type="submit" variant="destructive" className="w-full">
+            Logout
+          </Button>
+        </form>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 p-6">
         {children}
       </main>
     </div>

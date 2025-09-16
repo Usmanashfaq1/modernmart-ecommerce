@@ -2,57 +2,57 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-
 import { createClient } from '@/lib/supabase/supabaseServer'
+import { getUserById } from '@/respositories/userRespository'
 
 export async function login(formData: FormData) {
   const supabase = await createClient()
 
-  // type-casting here for convenience
-  // in practice, you should validate your inputs
-  const data = {
-    email: formData.get('email') as string,
-    password: formData.get('password') as string,
+  const email = formData.get('email') as string
+  const password = formData.get('password') as string
+
+  if (!email || !password) {
+    return redirect('/admin/login?error=Please fill in all fields')
   }
 
-  const { error } = await supabase.auth.signInWithPassword(data)
+  const { data: authData, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  })
 
-  if (error) {
-    redirect('/error')
+  if (error || !authData.user) {
+    console.error('❌ Login error:', error?.message)
+    return redirect(`/admin/login?error=${encodeURIComponent(error?.message || 'Login failed')}`)
   }
 
-  revalidatePath('/dashboard', 'layout')
-redirect('/dashboard')
-}
+  console.log('✅ Login successful:', authData.user.id)
 
-export async function signup(formData: FormData) {
-  const supabase = await createClient()
+  // Fetch user profile from your database
+  const profile = await getUserById(authData.user.id)
 
-  // type-casting here for convenience
-  // in practice, you should validate your inputs
-  const data = {
-    email: formData.get('email') as string,
-    password: formData.get('password') as string,
+  if (!profile || profile.role !== 'ADMIN') {
+    // Log out the user from Supabase if not admin
+    await supabase.auth.signOut()
+    return redirect('/admin/login?error=Access denied')
   }
 
-  const { error } = await supabase.auth.signUp(data)
+  // Refresh cache
+  revalidatePath('/admin/dashboard', 'layout')
 
-  if (error) {
-    redirect('/error')
-  }
-
-  revalidatePath('/dashboard', 'layout')
-  redirect('/dashboard')
+  // Redirect to admin dashboard
+  redirect('/admin/dashboard')
 }
 
 export async function logout() {
   const supabase = await createClient()
   const { error } = await supabase.auth.signOut()
-  
+
   if (error) {
-    redirect('/error')
+    console.error('❌ Logout error:', error.message)
+    return redirect('/error')
   }
-  
-  revalidatePath('/', 'layout')
-  redirect('/login')
+
+  revalidatePath('/admin/dashboard', 'layout')
+
+  redirect('/admin/login')
 }
