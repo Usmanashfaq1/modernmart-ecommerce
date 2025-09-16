@@ -4,7 +4,7 @@ import Footer from "./_components/Footer"
 import { CartProvider } from "@/context/CartContext"
 
 export const metadata = {
-  title: "ModernMart",
+  title: "Urban Threads",
   description: "Premium urban fashion store",
 }
 
