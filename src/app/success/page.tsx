@@ -1,11 +1,13 @@
-'use client'
+"use client"
 
+import { useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle, ShoppingBag, Truck, Shield } from "lucide-react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
+import { useCart } from "@/context/CartContext"
 
 function SuccessHeader() {
   return (
@@ -27,15 +29,22 @@ function SuccessHeader() {
 
 function OrderDetails() {
   const searchParams = useSearchParams()
-  const sessionId = searchParams.get('session_id')
+  const sessionId = searchParams.get("session_id")
+  const { clearCart } = useCart()
 
-  // Mock order details (replace with fetching from Stripe webhook or your DB)
+  useEffect(() => {
+    // Clear cart after payment
+    clearCart()
+  }, [clearCart])
+
+  // TODO: Replace with real order details from backend or Stripe webhook
   const order = {
-    id: '#12345',
-    total: '$239.96',
+    id: "#12345",
+    total: "$239.96",
     items: 3,
     date: new Date().toLocaleDateString(),
-    status: 'Processing' as const
+    status: "Processing" as const,
+    paymentMethod: "Credit Card **** 4242",
   }
 
   return (
@@ -61,7 +70,7 @@ function OrderDetails() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Total</span>
-                <span className="font-semibold text-primary">${order.total}</span>
+                <span className="font-semibold text-primary">{order.total}</span>
               </div>
             </div>
             <div className="space-y-4">
@@ -75,7 +84,7 @@ function OrderDetails() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Payment Method</span>
-                <span className="font-semibold">Credit Card **** 4242</span>
+                <span className="font-semibold">{order.paymentMethod}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Transaction ID</span>
@@ -115,14 +124,10 @@ function OrderDetails() {
 
       <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
         <Button asChild size="lg" className="flex-1">
-          <Link href="/products">
-            Continue Shopping
-          </Link>
+          <Link href="/products">Continue Shopping</Link>
         </Button>
         <Button variant="outline" asChild size="lg" className="flex-1">
-          <Link href="/orders">
-            View Orders
-          </Link>
+          <Link href="/orders">View Orders</Link>
         </Button>
       </div>
     </div>

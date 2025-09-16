@@ -5,14 +5,18 @@ import { useCart } from "@/context/CartContext"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft } from "lucide-react"
 
+type CartItemType = {
+  id: number
+  name: string
+  price: number
+  image: string
+  quantity: number
+  size?: string
+  color?: string
+}
+
 type CartItemProps = {
-  item: {
-    id: number   // ✅ fixed: number, not string
-    name: string
-    price: number
-    image: string
-    quantity: number
-  }
+  item: CartItemType
   onUpdateQuantity: (id: number, quantity: number) => void
   onRemove: (id: number) => void
   onMoveToWishlist: (id: number) => void
@@ -24,16 +28,16 @@ function CartItem({ item, onUpdateQuantity, onRemove, onMoveToWishlist }: CartIt
       <img src={item.image} alt={item.name} className="w-24 h-24 object-cover rounded" />
       <div className="flex-1">
         <h3 className="font-medium">{item.name}</h3>
-        <p className="text-sm text-muted-foreground">${item.price.toFixed(2)}</p>
+        <p className="text-sm text-muted-foreground">
+          ${item.price.toFixed(2)} | {item.size || "One Size"} | {item.color || "Default"}
+        </p>
 
-        {/* Quantity Controls */}
         <div className="flex items-center gap-2 mt-2">
           <Button variant="outline" size="sm" onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}>-</Button>
           <span>{item.quantity}</span>
           <Button variant="outline" size="sm" onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}>+</Button>
         </div>
 
-        {/* Actions */}
         <div className="flex gap-4 mt-2 text-sm">
           <button onClick={() => onRemove(item.id)} className="text-red-500 hover:underline">Remove</button>
           <button onClick={() => onMoveToWishlist(item.id)} className="text-blue-500 hover:underline">Move to Wishlist</button>
@@ -43,18 +47,32 @@ function CartItem({ item, onUpdateQuantity, onRemove, onMoveToWishlist }: CartIt
   )
 }
 
-function OrderSummary({ items }: { items: { price: number; quantity: number }[] }) {
-  const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0)
+function OrderSummary({ items }: { items: CartItemType[] }) {
+  const normalizedItems = items.map(item => ({
+    ...item,
+    size: item.size || "One Size",
+    color: item.color || "Default",
+  }))
+
+  const subtotal = normalizedItems.reduce((sum, i) => sum + i.price * i.quantity, 0)
   const shipping = subtotal > 0 ? 10 : 0
   const total = subtotal + shipping
 
   return (
     <div className="border rounded-lg p-4 space-y-2">
       <h2 className="text-lg font-semibold">Order Summary</h2>
+      {normalizedItems.map(item => (
+        <div key={item.id} className="flex justify-between text-sm">
+          <span>{item.name} ({item.quantity})</span>
+          <span>${(item.price * item.quantity).toFixed(2)}</span>
+        </div>
+      ))}
       <div className="flex justify-between"><span>Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
       <div className="flex justify-between"><span>Shipping</span><span>${shipping.toFixed(2)}</span></div>
       <div className="flex justify-between font-bold"><span>Total</span><span>${total.toFixed(2)}</span></div>
-      <Button className="w-full mt-4">Checkout</Button>
+      <Button asChild className="w-full mt-4">
+        <Link href="/checkout">Checkout</Link>
+      </Button>
     </div>
   )
 }
@@ -78,13 +96,10 @@ export default function CartPage() {
     alert("Item moved to wishlist!")
   }
 
-  if (items.length === 0) {
-    return <EmptyCart />
-  }
+  if (items.length === 0) return <EmptyCart />
 
   return (
     <div className="min-h-screen">
-      {/* Back to Shopping */}
       <div className="container mx-auto px-4 py-4">
         <Button variant="ghost" asChild className="p-0">
           <Link href="/products" className="flex items-center text-muted-foreground hover:text-primary">
@@ -96,9 +111,8 @@ export default function CartPage() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Cart Items */}
           <div className="lg:col-span-2 space-y-4">
-            {items.map((item) => (
+            {items.map(item => (
               <CartItem
                 key={item.id}
                 item={item}
@@ -109,9 +123,8 @@ export default function CartPage() {
             ))}
           </div>
 
-          {/* Order Summary */}
           <div className="lg:col-span-1">
-            <OrderSummary items={items} /> {/* ✅ fixed: items instead of cart */}
+            <OrderSummary items={items} />
           </div>
         </div>
       </div>

@@ -16,7 +16,6 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
     )
   }
 
-  // Map DB → UI
   const mappedProduct = {
     id: product.id,
     name: product.name,
@@ -39,14 +38,12 @@ export default async function ProductDetailPage({ params }: { params: { slug: st
   return (
     <div className="min-h-screen">
       <Breadcrumb product={mappedProduct} />
-      
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           <ProductGallery images={mappedProduct.images} name={mappedProduct.name} />
           <ProductInfo product={mappedProduct} />
         </div>
       </div>
-      
       <ProductDescription product={mappedProduct} />
     </div>
   )
