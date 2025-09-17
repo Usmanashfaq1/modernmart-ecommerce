@@ -18,9 +18,13 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
+      "src/generated/**", // Ignore all Prisma generated files
     ],
     rules: {
-      // Disable all rules
+      "@typescript-eslint/no-unused-expressions": "off",
+      "@typescript-eslint/no-unused-vars": "off", // Skipped as requested
+      "@typescript-eslint/no-explicit-any": "off", // Skipped as requested
+      "@typescript-eslint/no-require-imports": "off", // Skipped as requested
     },
   },
 ];

@@ -8,6 +8,7 @@ import { CheckCircle, ShoppingBag, Truck, Shield } from "lucide-react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { useCart } from "@/context/CartContext"
+import { Suspense } from "react"
 
 function SuccessHeader() {
   return (
@@ -33,11 +34,9 @@ function OrderDetails() {
   const { clearCart } = useCart()
 
   useEffect(() => {
-    // Clear cart after payment
     clearCart()
   }, [clearCart])
 
-  // TODO: Replace with real order details from backend or Stripe webhook
   const order = {
     id: "#12345",
     total: "$239.96",
@@ -88,34 +87,7 @@ function OrderDetails() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Transaction ID</span>
-                <span className="font-mono text-sm">{sessionId?.slice(-8)}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-6 border-t">
-            <h3 className="text-lg font-semibold mb-4">What's Next?</h3>
-            <div className="space-y-3 text-sm">
-              <div className="flex items-start space-x-3">
-                <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="font-medium">Order Confirmation</p>
-                  <p className="text-muted-foreground">We've sent you an order confirmation email.</p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-3">
-                <Truck className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="font-medium">Processing</p>
-                  <p className="text-muted-foreground">Your order is being processed and will ship within 1-2 business days.</p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-3">
-                <Shield className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="font-medium">Secure Payment</p>
-                  <p className="text-muted-foreground">Your payment was processed securely via Stripe.</p>
-                </div>
+                <span className="font-mono text-sm">{sessionId?.slice(-8) || "N/A"}</span>
               </div>
             </div>
           </div>
@@ -136,9 +108,11 @@ function OrderDetails() {
 
 export default function SuccessPage() {
   return (
-    <div className="min-h-screen">
-      <SuccessHeader />
-      <OrderDetails />
-    </div>
+    <Suspense fallback={<div>Loading...</div>}>
+      <div className="min-h-screen">
+        <SuccessHeader />
+        <OrderDetails />
+      </div>
+    </Suspense>
   )
 }

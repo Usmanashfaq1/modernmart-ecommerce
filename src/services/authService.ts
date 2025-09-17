@@ -79,38 +79,3 @@ export const signUp = async (
 };
 
 
-// export const login = async (email: string, password: string) => {
-//   const trimmedEmail = email.trim()
-//   if (!validator.isEmail(trimmedEmail)) {
-//     throw new Error("Invalid email address")
-//   }
-
-//   if (!password || password.length < 6) {
-//     throw new Error("Password must be at least 6 characters")
-//   }
-
-//   const { data, error } = await supabase.auth.signInWithPassword({
-//     email: trimmedEmail,
-//     password,
-//   })
-
-//   if (error) throw new Error(error.message)
-//   if (!data.user) throw new Error("Login failed: user not found")
-
-//   const profile = await userRepo.findUserById(data.user.id)
-
-//   return {
-//     user: data.user,
-//     profile,
-//     session: data.session,
-//   }
-// }
-
-
-
-// export const signout=async ()=> 
-// {
-//   const {error}=await supabase.auth.signOut();
-
-// }
-
